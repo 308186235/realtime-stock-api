@@ -1,0 +1,1 @@
+export async function onRequest() { return new Response(JSON.stringify({success: true, data: [{symbol: " sz000001\, price: \10.50\, change: \+0.25\, change_percent: \+2.44\}]}), {headers: {\Content-Type\: \application/json\, \Access-Control-Allow-Origin\: \*\}}); }
