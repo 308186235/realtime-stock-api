@@ -28,11 +28,12 @@ export async function onRequest(context) {
 
         return new Response(JSON.stringify({
             success: true,
-            timestamp: new Date().toISOString(),
+            api_call_time: new Date().toISOString(),
             data: stockData,
             symbols_count: symbolList.length,
             data_source: 'real-time-api',
-            api_key: API_KEY
+            api_key: API_KEY,
+            market_status: getMarketStatus()
         }), { headers: corsHeaders });
         
     } catch (error) {
@@ -77,6 +78,29 @@ function parseCompleteStockData(data, symbol) {
         
         const fields = match[1].split('~');
         if (fields.length < 50) return null;
+
+        // 解析腾讯API的时间戳
+        const updateTimeStr = fields[30]; // "20250701161409"
+        let stockDataTime = new Date().toISOString(); // 默认值
+        let beijingTimeStr = '';
+        let dataStatus = 'unknown';
+        
+        if (updateTimeStr && updateTimeStr.length === 14) {
+            const year = updateTimeStr.substring(0, 4);
+            const month = updateTimeStr.substring(4, 6);
+            const day = updateTimeStr.substring(6, 8);
+            const hour = updateTimeStr.substring(8, 10);
+            const minute = updateTimeStr.substring(10, 12);
+            const second = updateTimeStr.substring(12, 14);
+            
+            // 构建北京时间，然后转换为UTC
+            const beijingTime = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}+08:00`);
+            stockDataTime = beijingTime.toISOString();
+            beijingTimeStr = `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+            
+            // 判断数据状态
+            dataStatus = getDataStatus(parseInt(hour), parseInt(minute));
+        }
 
         // 根据腾讯API完整字段解析
         return {
@@ -142,13 +166,80 @@ function parseCompleteStockData(data, symbol) {
             outer_volume: parseInt(fields[7]) || 0,       // 外盘(手)
             inner_volume: parseInt(fields[8]) || 0,       // 内盘(手)
             
-            // 时间戳
-            update_time: fields[30] || '',
-            timestamp: new Date().toISOString(),
+            // 时间信息 - 使用股票数据的真实时间戳
+            stock_data_time: stockDataTime,              // 股票数据时间(ISO格式)
+            beijing_time: beijingTimeStr,                // 北京时间(易读格式)
+            raw_timestamp: updateTimeStr,                // 原始时间戳
+            data_status: dataStatus,                     // 数据状态
+            data_age_minutes: getDataAge(updateTimeStr), // 数据年龄(分钟)
+            
+            // 数据源信息
             data_source: 'tencent_complete_api'
         };
     } catch (error) {
         console.error('解析股票数据失败:', error);
         return null;
+    }
+}
+
+function getDataStatus(hour, minute) {
+    const time = hour * 100 + minute;
+    
+    if (time >= 930 && time <= 1130) {
+        return 'trading_morning'; // 上午交易时间
+    } else if (time >= 1300 && time <= 1500) {
+        return 'trading_afternoon'; // 下午交易时间
+    } else if (time >= 1500 && time <= 1700) {
+        return 'after_hours'; // 盘后时间
+    } else if (time >= 900 && time < 930) {
+        return 'pre_market'; // 盘前时间
+    } else {
+        return 'market_closed'; // 休市时间
+    }
+}
+
+function getDataAge(updateTimeStr) {
+    if (!updateTimeStr || updateTimeStr.length !== 14) return 0;
+    
+    try {
+        const year = updateTimeStr.substring(0, 4);
+        const month = updateTimeStr.substring(4, 6);
+        const day = updateTimeStr.substring(6, 8);
+        const hour = updateTimeStr.substring(8, 10);
+        const minute = updateTimeStr.substring(10, 12);
+        const second = updateTimeStr.substring(12, 14);
+        
+        const dataTime = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}+08:00`);
+        const now = new Date();
+        const ageMs = now.getTime() - dataTime.getTime();
+        return Math.floor(ageMs / (1000 * 60)); // 转换为分钟
+    } catch (error) {
+        return 0;
+    }
+}
+
+function getMarketStatus() {
+    const now = new Date();
+    const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const hour = beijingTime.getUTCHours();
+    const minute = beijingTime.getUTCMinutes();
+    const time = hour * 100 + minute;
+    const weekday = beijingTime.getUTCDay();
+    
+    // 周末休市
+    if (weekday === 0 || weekday === 6) {
+        return 'weekend_closed';
+    }
+    
+    if (time >= 930 && time <= 1130) {
+        return 'trading_morning';
+    } else if (time >= 1300 && time <= 1500) {
+        return 'trading_afternoon';
+    } else if (time >= 1500 && time <= 1700) {
+        return 'after_hours';
+    } else if (time >= 900 && time < 930) {
+        return 'pre_market';
+    } else {
+        return 'market_closed';
     }
 }
