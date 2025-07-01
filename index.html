@@ -1,0 +1,143 @@
+﻿<!DOCTYPE html>
+<html lang=" zh-CN\>
+<head>
+ <meta charset=\UTF-8\>
+ <meta name=\viewport\ content=\width=device-width initial-scale=1.0\>
+ <title>实时股票数据API - 云端服务</title>
+ <style>
+ body {
+ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ margin: 0;
+ padding: 20px;
+ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+ color: white;
+ min-height: 100vh;
+ }
+ .container {
+ max-width: 1200px;
+ margin: 0 auto;
+ background: rgba(255, 255, 255, 0.1);
+ border-radius: 20px;
+ padding: 40px;
+ backdrop-filter: blur(10px);
+ box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+ }
+ h1 {
+ text-align: center;
+ font-size: 3em;
+ margin-bottom: 10px;
+ text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+ }
+ .subtitle {
+ text-align: center;
+ font-size: 1.2em;
+ margin-bottom: 40px;
+ opacity: 0.9;
+ }
+ .api-grid {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+ gap: 20px;
+ margin-bottom: 40px;
+ }
+ .api-card {
+ background: rgba(255, 255, 255, 0.15);
+ border-radius: 15px;
+ padding: 25px;
+ border: 1px solid rgba(255, 255, 255, 0.2);
+ transition: transform 0.3s ease;
+ }
+ .api-card:hover {
+ transform: translateY(-5px);
+ }
+ .api-link {
+ display: inline-block;
+ background: rgba(255, 255, 255, 0.2);
+ color: white;
+ text-decoration: none;
+ padding: 10px 20px;
+ border-radius: 25px;
+ margin-top: 15px;
+ transition: background 0.3s ease;
+ }
+ .api-link:hover {
+ background: rgba(255, 255, 255, 0.3);
+ }
+ .status-indicator {
+ display: inline-block;
+ width: 12px;
+ height: 12px;
+ border-radius: 50%;
+ background: #4CAF50;
+ margin-right: 8px;
+ animation: pulse 2s infinite;
+ }
+ @keyframes pulse {
+ 0% { opacity: 1; }
+ 50% { opacity: 0.5; }
+ 100% { opacity: 1; }
+ }
+ .footer {
+ text-align: center;
+ margin-top: 40px;
+ opacity: 0.8;
+ }
+ </style>
+</head>
+<body>
+ <div class=\container\>
+ <h1> 实时股票数据API</h1>
+ <p class=\subtitle\>
+ <span class=\status-indicator\></span>
+ 高性能云端股票数据服务 - 已部署到全球CDN
+ </p>
+
+ <div class=\api-grid\>
+ <div class=\api-card\>
+ <h3> API状态检查</h3>
+ <p>检查API服务运行状态和连接信息</p>
+ <a href=\/api/status\ class=\api-link\>查看状态</a>
+ </div>
+
+ <div class=\api-card\>
+ <h3> 股票数据查询</h3>
+ <p>获取实时股票行情数据，支持多股票代码查询</p>
+ <a href=\/api/quotes?symbols=sz000001\ class=\api-link\>测试查询</a>
+ </div>
+
+ <div class=\api-card\>
+ <h3> 密钥管理</h3>
+ <p>管理API密钥和配置信息</p>
+ <a href=\/key-manager.html\ class=\api-link\>密钥管理</a>
+ </div>
+ </div>
+
+ <div class=\footer\>
+ <p> 部署在 Cloudflare Pages | 全球加速 | 安全可靠</p>
+ <p>API Key: QT_wat5QfcJ6N9pDZM5 | 到期时间: 2025-02-01</p>
+ </div>
+ </div>
+
+ <script>
+ async function checkApiStatus() {
+ try {
+ const response = await fetch('/api/status');
+ const data = await response.json();
+ console.log('API状态:', data);
+ 
+ if (data.success) {
+ document.querySelector('.status-indicator').style.background = '#4CAF50';
+ } else {
+ document.querySelector('.status-indicator').style.background = '#f44336';
+ }
+ } catch (error) {
+ console.error('API状态检查失败:', error);
+ document.querySelector('.status-indicator').style.background = '#ff9800';
+ }
+ }
+
+ window.addEventListener('load', checkApiStatus);
+ setInterval(checkApiStatus, 30000);
+ </script>
+</body>
+</html>
